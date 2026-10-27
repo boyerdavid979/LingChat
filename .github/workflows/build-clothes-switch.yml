@@ -1,0 +1,62 @@
+name: Build LingChat with clothes switch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout patch base
+        shell: bash
+        run: |
+          git checkout eae0d66 || git checkout v0.5.2 || echo "base commit/tag not found, using current HEAD"
+          git log -1 --oneline
+
+      - name: Download and apply clothes switch patch
+        shell: bash
+        run: |
+          curl -L --retry 3 --retry-delay 5 \
+            -o ../character_clothes_switch.patch \
+            https://github.com/user-attachments/files/31503186/character_clothes_switch.patch
+          ls -l ../character_clothes_switch.patch
+          git apply --verbose ../character_clothes_switch.patch \
+            || git apply --3way ../character_clothes_switch.patch
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build Tauri app
+        shell: bash
+        env:
+          RUST_BACKTRACE: 1
+        run: pnpm tauri build
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: LingChat-clothes-switch
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: warn
