@@ -31,6 +31,12 @@ jobs:
           sed -i 's#https://gh-proxy.org/github.com/#https://github.com/#g' src-tauri/Cargo.toml
           git config --global url."https://github.com/".insteadOf "https://gh-proxy.org/github.com/"
 
+      - name: Generate a valid Windows icon
+        shell: bash
+        run: |
+          python -m pip install --quiet pillow
+          python -c "from PIL import Image, ImageDraw; im=Image.new('RGBA',(256,256),(30,90,200,255)); d=ImageDraw.Draw(im); d.ellipse((48,48,208,208),fill=(255,255,255,255)); im.save('src-tauri/icons/icon.png'); im.save('src-tauri/icons/icon.ico', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128)])"
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
