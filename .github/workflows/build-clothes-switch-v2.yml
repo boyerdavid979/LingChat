@@ -1,66 +1,65 @@
-name: Build LingChat with clothes switch v2
+name: Build LingChat with clothes switch
 
 on:
   workflow_dispatch:
 
-  jobs:
-    build:
-        runs-on: windows-latest
+jobs:
+  build:
+    runs-on: windows-latest
 
-            steps:
-                  - name: Checkout fork
-                          uses: actions/checkout@v4
-                                  with:
-                                            fetch-depth: 0
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-                                                  - name: Checkout patch base
-                                                          shell: bash
-                                                                  run: |
-                                                                            git checkout eae0d66 || git checkout v0.5.2 || echo "fallback HEAD"
-                                                                                      git log -1 --oneline
+      - name: Checkout patch base
+        shell: bash
+        run: |
+          git checkout eae0d66 || git checkout v0.5.2 || echo "fallback HEAD"
+          git log -1 --oneline
 
-                                                                                            - name: Download and apply patch
-                                                                                                    shell: bash
-                                                                                                            run: |
-                                                                                                                      curl -L --retry 3 -o ../clothes.patch https://github.com/user-attachments/files/31503186/character_clothes_switch.patch
-                                                                                                                                git apply --verbose ../clothes.patch || git apply --3way ../clothes.patch
-                                                                                                                                
-                                                                                                                                      - name: Rewrite cargo proxy to direct GitHub
-                                                                                                                                              shell: bash
-                                                                                                                                                      run: |
-                                                                                                                                                                sed -i 's#https://gh-proxy.org/github.com/#https://github.com/#g' src-tauri/Cargo.toml
-                                                                                                                                                                          git config --global url."https://github.com/".insteadOf "https://gh-proxy.org/github.com/"
-                                                                                                                                                                          
-                                                                                                                                                                                - name: Setup pnpm
-                                                                                                                                                                                        uses: pnpm/action-setup@v4
-                                                                                                                                                                                                with:
-                                                                                                                                                                                                          version: 11.21.0
-                                                                                                                                                                                                          
-                                                                                                                                                                                                                - name: Setup Node
-                                                                                                                                                                                                                        uses: actions/setup-node@v4
-                                                                                                                                                                                                                                with:
-                                                                                                                                                                                                                                          node-version: 22
-                                                                                                                                                                                                                                                    cache: pnpm
-                                                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                                          - name: Setup Rust
-                                                                                                                                                                                                                                                                  uses: dtolnay/rust-toolchain@stable
-                                                                                                                                                                                                                                                                  
-                                                                                                                                                                                                                                                                        - name: Install dependencies
-                                                                                                                                                                                                                                                                                run: pnpm install --no-frozen-lockfile
-                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                      - name: Build Tauri app
-                                                                                                                                                                                                                                                                                              shell: bash
-                                                                                                                                                                                                                                                                                                      env:
-                                                                                                                                                                                                                                                                                                                RUST_BACKTRACE: 1
-                                                                                                                                                                                                                                                                                                                          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
-                                                                                                                                                                                                                                                                                                                                  run: pnpm tauri build
-                                                                                                                                                                                                                                                                                                                                  
-                                                                                                                                                                                                                                                                                                                                        - name: Upload installer
-                                                                                                                                                                                                                                                                                                                                                uses: actions/upload-artifact@v4
-                                                                                                                                                                                                                                                                                                                                                        with:
-                                                                                                                                                                                                                                                                                                                                                                  name: LingChat-clothes-switch-v2
-                                                                                                                                                                                                                                                                                                                                                                            path: |
-                                                                                                                                                                                                                                                                                                                                                                                        src-tauri/target/release/bundle/nsis/*.exe
-                                                                                                                                                                                                                                                                                                                                                                                                    src-tauri/target/release/bundle/msi/*.msi
-                                                                                                                                                                                                                                                                                                                                                                                                              if-no-files-found: warn
-                                                                                                                                                                                                                                                                                                                                                                                                              
+      - name: Download and apply patch
+        shell: bash
+        run: |
+          curl -L --retry 3 -o ../clothes.patch https://github.com/user-attachments/files/31503186/character_clothes_switch.patch
+          git apply --verbose ../clothes.patch || git apply --3way ../clothes.patch
+
+      - name: Rewrite cargo proxy to direct GitHub
+        shell: bash
+        run: |
+          sed -i 's#https://gh-proxy.org/github.com/#https://github.com/#g' src-tauri/Cargo.toml
+          git config --global url."https://github.com/".insteadOf "https://gh-proxy.org/github.com/"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build Tauri app
+        shell: bash
+        env:
+          RUST_BACKTRACE: 1
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+        run: pnpm tauri build
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: LingChat-clothes-switch
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: warn
